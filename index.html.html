@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario de Bebidas Avanzado</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React y Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Chart.js para los gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .pb-safe { padding-bottom: 100px; } /* Reducido para una barra inferior más compacta */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- Función para generar la lista completa de bebidas ---
+        const generateBeverageList = () => {
+            const categories = {
+                'Cachantum 600ml': ['Con gas', 'Sin gas', 'Verde', 'Strom'].map((s, i) => ({ name: s, id: `c600-${i}` })),
+                'Cachantum 1L': [{ name: 'Sin gas', id: 'c1L-0' }],
+                'Cachantum 1.5L': ['Sin gas', 'Con gas', 'Verde', 'Strom'].map((s, i) => ({ name: s, id: `c1.5L-${i}` })),
+                'Cachantum 2.5L': ['Con gas', 'Sin gas'].map((s, i) => ({ name: s, id: `c2.5L-${i}` })),
+                'Pura Vida 6L': [{ name: 'Pura Vida 6L', id: 'pv6L-0' }],
+                'Saborizadas 600ml': ['Mango maracuyá', 'Piña', 'Pera', 'Granada', 'Limonada frambuesa', 'Uva', 'Citrus', 'Limonada jengibre', 'Manzana'].map((s, i) => ({ name: s, id: `s600-${i}` })),
+                'Saborizadas 1.5L': ['Mango maracuyá', 'Piña', 'Pera', 'Granada', 'Limonada frambuesa', 'Uva', 'Citrus', 'Limonada jengibre', 'Manzana'].map((s, i) => ({ name: s, id: `s1.5L-${i}` })),
+                'Watts 300ml': ['Durazno', 'Tutifrutilla', 'Naranja'].map((s, i) => ({ name: s, id: `w300-${i}` })),
+                'Watts 1.5L': ['Durazno', 'Tutifrutilla', 'Manzana', 'Damasco', 'Piña', 'Naranja plátano', 'Naranja', 'Naranja manzana', 'Tutifrutilla sin azúcar', 'Piña sin azúcar', 'Maracuyá sin azúcar', 'Mango sin azúcar', 'Naranja sin azúcar', 'Durazno sin azúcar'].map((s, i) => ({ name: s, id: `w1.5L-${i}` })),
+                'Watts Selección 350ml': ['Naranja Valencia', 'Piña guayaba', 'Mango maracuyá'].map((s, i) => ({ name: s, id: `ws350-${i}` })),
+                'Watts Selección 1L': ['Naranja Valencia', 'Piña guayaba', 'Mango maracuyá'].map((s, i) => ({ name: s, id: `ws1L-${i}` })),
+                'Lipton 310ml': ['Durazno', 'Limón'].map((s, i) => ({ name: s, id: `l310-${i}` })),
+                'Lipton 600ml': ['Frambuesa', 'Limón', 'Durazno'].map((s, i) => ({ name: s, id: `l600-${i}` })),
+                'Lipton 1.5L': ['Durazno', 'Limón', 'Frambuesa'].map((s, i) => ({ name: s, id: `l1.5L-${i}` })),
+                'Gatorade 1L': ['Cool Blue', 'Maracuyá', 'Limón', 'Frutas tropicales', 'Naranja', 'Blue Berry Zero', 'Naranja Zero', 'Gatorade Rojo'].map((s, i) => ({ name: s, id: `g1L-${i}` })),
+                'Gatorlit 591ml': ['Frutilla kiwi', 'Uva'].map((s, i) => ({ name: s, id: `g591-${i}` })),
+                'Bebidas 3L': ['Pepsi original', 'Pepsi Zero', 'Pap', 'Bilz', 'Canadá dry', 'Limón soda', 'Kem piña', '7 up'].map((s, i) => ({ name: s, id: `b3L-${i}` })),
+                'Bebidas 1.5L': ['Limón soda', 'Kem Xtreme', 'Kem piña', 'Kem piña Zero', 'Crush', 'Pap', 'Bilz', 'Canadá dry', 'Canadá dry Zero', 'Pepsi original', 'Pepsi Zero', '7up'].map((s, i) => ({ name: s, id: `b1.5L-${i}` })),
+                'Bebidas 600ml': ['Limón soda', 'Kem Xtreme', 'Kem piña', 'Crush', 'Pap', 'Bilz', 'Canadá dry', 'Pepsi original', 'Pepsi Zero', '7up', 'Rockstar', 'Rockstar mango', 'Kem piña Zero', 'Limón soda Zero', 'Kem Xtreme Zero', 'Rockstar sandía', 'H2Oh Agua Limonata', 'Naranchelo'].map((s, i) => ({ name: s, id: `b600-${i}` })),
+                'Bebidas Retornables': [{ name: 'Pepsi Original 2.5L', id: 'br1' }],
+                'Latas 350ml': ['Kem piña', 'Kem Xtreme', 'Pap', 'Bilz', 'Limón soda', 'Canadá dry', '7up', 'Pepsi original', 'Pepsi Zero'].map((s, i) => ({ name: s, id: `lt350-${i}` })),
+                'Latas 473ml': [{ name: 'Pepsi Zero', id: 'lt473-0' }],
+            };
+            
+            const packSizeMap = {
+                'Saborizadas 600ml': 12, 'Cachantum 600ml': 12, 'Bebidas 600ml': 12,
+                'Lipton 600ml': 6, 'Latas 350ml': 6, 'Latas 473ml': 6,
+                'Cachantum 1.5L': 6, 'Saborizadas 1.5L': 6, 'Watts 1.5L': 6, 'Lipton 1.5L': 6, 'Bebidas 1.5L': 6,
+                'Bebidas 3L': 6, 'Watts 300ml': 24, 'Gatorade 1L': 6, 'Gatorlit 591ml': 6
+            };
+
+            let allBeverages = [];
+            for (const category in categories) {
+                categories[category].forEach(bev => {
+                    allBeverages.push({ ...bev, category, quantity: 0, packSize: packSizeMap[category] || 1 });
+                });
+            }
+            return allBeverages;
+        };
+
+        const INITIAL_BEVERAGES = generateBeverageList();
+        
+        const RotationChart = ({ chartData }) => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (chartInstance.current) chartInstance.current.destroy();
+                const ctx = chartRef.current.getContext('2d');
+                chartInstance.current = new Chart(ctx, {
+                    type: 'bar', data: chartData,
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                });
+                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+            }, [chartData]);
+
+            return <div className="relative h-96 bg-white p-4 rounded-lg shadow-sm"><canvas ref={chartRef}></canvas></div>;
+        };
+
+        function App() {
+            const [beverages, setBeverages] = useState(INITIAL_BEVERAGES);
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('inventoryHistory')) || []);
+            const [view, setView] = useState('inventory');
+            const [analyticsCategory, setAnalyticsCategory] = useState('Watts 1.5L');
+            const [dateA, setDateA] = useState('');
+            const [dateB, setDateB] = useState('');
+
+            useEffect(() => { localStorage.setItem('inventoryHistory', JSON.stringify(history)); }, [history]);
+
+            const handleUpdateQuantity = (id, change) => {
+                setBeverages(current => current.map(bev => bev.id === id ? { ...bev, quantity: Math.max(0, bev.quantity + change) } : bev));
+            };
+
+            const saveInventory = () => {
+                const date = new Date().toISOString();
+                const newEntry = { date, inventory: JSON.parse(JSON.stringify(beverages)) };
+                setHistory(current => [...current, newEntry].sort((a, b) => new Date(b.date) - new Date(a.date)));
+                const modal = document.getElementById('save-modal');
+                if(modal) modal.classList.remove('hidden');
+                setTimeout(() => { if(modal) modal.classList.add('hidden'); }, 2000);
+            };
+
+            const handleNewInventory = () => {
+                if (window.confirm("¿Estás seguro? Las cantidades actuales se reiniciarán a cero.")) {
+                    setBeverages(currentBevs => currentBevs.map(b => ({ ...b, quantity: 0 })));
+                }
+            };
+            
+            const downloadInventoryTxt = () => {
+                let content = "INVENTARIO DE BEBIDAS\n" + `Fecha: ${new Date().toLocaleString()}\n\n`;
+                const groupedByCategory = beverages.reduce((acc, item) => {
+                    if (item.quantity > 0) {
+                        acc[item.category] = acc[item.category] || [];
+                        acc[item.category].push(item);
+                    }
+                    return acc;
+                }, {});
+                const categoryOrder = Object.keys(generateBeverageList().reduce((acc, b) => { acc[b.category] = true; return acc; }, {}));
+                categoryOrder.forEach(category => {
+                    if (groupedByCategory[category] && groupedByCategory[category].length > 0) {
+                        content += `*** ${category.toUpperCase()} ***\n`;
+                        groupedByCategory[category].forEach(item => { content += `- ${item.name}: ${item.quantity}\n`; });
+                        content += "\n";
+                    }
+                });
+                const total = beverages.reduce((sum, item) => sum + item.quantity, 0);
+                content += `*** TOTAL DE UNIDADES: ${total} ***\n`;
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `inventario_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+            
+            const categories = useMemo(() => Object.keys(beverages.reduce((acc, bev) => { acc[bev.category] = true; return acc; }, {})), [beverages]);
+
+            const rotationData = useMemo(() => {
+                if (!dateA || !dateB) return { labels: [], datasets: [] };
+                
+                const entryA = history.find(h => h.date === dateA);
+                const entryB = history.find(h => h.date === dateB);
+                if (!entryA || !entryB) return { labels: [], datasets: [] };
+
+                // Asegurarse que la fecha A es la más antigua
+                const [startEntry, endEntry] = new Date(entryA.date) < new Date(entryB.date) ? [entryA, entryB] : [entryB, entryA];
+
+                const startInventory = startEntry.inventory.filter(i => i.category === analyticsCategory);
+                const endInventory = endEntry.inventory.filter(i => i.category === analyticsCategory);
+
+                const rotation = startInventory.map(startItem => {
+                    const endItem = endInventory.find(e => e.id === startItem.id);
+                    const sold = startItem.quantity - (endItem ? endItem.quantity : 0);
+                    return { name: startItem.name, sold: Math.max(0, sold) };
+                }).filter(item => item.sold > 0).sort((a, b) => b.sold - a.sold);
+
+                return {
+                    labels: rotation.map(r => r.name),
+                    datasets: [{
+                        label: 'Unidades Vendidas',
+                        data: rotation.map(r => r.sold),
+                        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        borderWidth: 1,
+                    }]
+                };
+            }, [history, analyticsCategory, dateA, dateB]);
+
+            return (
+                <div className="min-h-screen">
+                    <header className="p-4 bg-white text-center sticky top-0 z-20 shadow-md">
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Gestor de Inventario</h1>
+                        <nav className="mt-3 flex justify-center gap-2">
+                            <button onClick={() => setView('inventory')} className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors ${view === 'inventory' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>Inventario</button>
+                            <button onClick={() => setView('analytics')} className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors ${view === 'analytics' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>Análisis de Rotación</button>
+                        </nav>
+                    </header>
+                    
+                    {view === 'inventory' && (
+                        <main className="pb-safe fade-in">
+                            {categories.map(category => (
+                                <div key={category} className="m-2 md:m-4">
+                                    <h2 className="text-lg md:text-xl font-bold text-slate-600 mb-2 ml-2">{category}</h2>
+                                    <div className="bg-white rounded-xl shadow-sm">
+                                    {beverages.filter(b => b.category === category).map((item, index) => (
+                                        <div key={item.id} className={`flex items-center p-3 ${index > 0 ? 'border-t border-slate-100' : ''}`}>
+                                            <p className="flex-1 font-semibold text-slate-700 text-sm md:text-base">{item.name}</p>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => handleUpdateQuantity(item.id, -1)} className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 text-xl font-bold flex items-center justify-center transition-colors hover:bg-slate-300">-</button>
+                                                <span className="text-lg font-bold text-slate-800 w-10 text-center">{item.quantity}</span>
+                                                <button onClick={() => handleUpdateQuantity(item.id, 1)} className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 text-xl font-bold flex items-center justify-center transition-colors hover:bg-slate-300">+1</button>
+                                                {item.packSize > 1 && (
+                                                    <button onClick={() => handleUpdateQuantity(item.id, item.packSize)} className="h-8 px-2 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center transition-colors hover:bg-blue-200">{`+P(${item.packSize})`}</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </main>
+                    )}
+
+                    {view === 'analytics' && (
+                        <div className="p-4 fade-in pb-safe">
+                            <h2 className="text-xl font-bold text-slate-700 mb-4">Análisis de Rotación</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-lg shadow-sm mb-4">
+                                <div className="md:col-span-1">
+                                    <label className="block text-sm font-medium text-slate-600 mb-1">Categoría</label>
+                                    <select value={analyticsCategory} onChange={e => setAnalyticsCategory(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md">
+                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2 grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-1">Desde (Fecha A)</label>
+                                        <select value={dateA} onChange={e => setDateA(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md">
+                                            <option value="">Seleccionar...</option>
+                                            {history.map(h => <option key={h.date} value={h.date}>{new Date(h.date).toLocaleString()}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-1">Hasta (Fecha B)</label>
+                                        <select value={dateB} onChange={e => setDateB(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md">
+                                            <option value="">Seleccionar...</option>
+                                            {history.map(h => <option key={h.date} value={h.date}>{new Date(h.date).toLocaleString()}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            {rotationData.labels.length > 0 ? <RotationChart chartData={rotationData} /> : (
+                                <div className="text-center p-10 bg-white rounded-lg shadow-sm">
+                                    <p className="text-slate-500">Selecciona una categoría y dos fechas para ver la rotación de productos.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {view === 'inventory' && (
+                        <footer className="fixed bottom-0 left-0 right-0 flex justify-between items-center p-3 bg-white border-t border-slate-200 shadow-lg z-10 gap-2">
+                            <button onClick={downloadInventoryTxt} className="w-12 h-12 flex items-center justify-center bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </button>
+                            <div className="flex gap-2">
+                                <button onClick={handleNewInventory} className="bg-amber-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-amber-600 transition-colors text-sm">Nuevo</button>
+                                <button onClick={saveInventory} className="bg-green-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-green-600 transition-colors text-sm">Guardar</button>
+                            </div>
+                        </footer>
+                    )}
+                    
+                    <div id="save-modal" className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 transition-opacity">
+                        <div className="bg-white p-6 rounded-lg shadow-xl text-center fade-in">
+                            <svg className="h-12 w-12 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <p className="text-lg font-semibold text-slate-700">¡Inventario Guardado!</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
